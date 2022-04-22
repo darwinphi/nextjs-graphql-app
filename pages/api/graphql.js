@@ -1,32 +1,35 @@
-import { ApolloServer, gql } from "apollo-server-nextjs";
+import { ApolloServer, gql } from "apollo-server-micro";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 
-const typeDefs = gql`
-  type Query {
-    hello: String
-  }
-`;
+import Cors from "micro-cors";
 
-const resolvers = {
+export const resolvers = {
   Query: {
     hello: () => "Hello world!",
   },
 };
 
-const server = new ApolloServer({
+export const typeDefs = gql`
+  type Query {
+    hello: String
+  }
+`;
+
+const cors = Cors();
+const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
-  introspection: true,
-  plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
+  playground: true,
+  plugins: [ApolloServerPluginLandingPageGraphQLPlayground],
 });
 
-export default server.createHandler({
-  expressGetMiddlewareOptions: {
-    cors: {
-      origin: "*",
-      credentials: true,
-    },
-  },
+const startServer = apolloServer.start();
+
+export default cors(async function handler(req, res) {
+  await startServer;
+  await apolloServer.createHandler({
+    path: "/api/graphql",
+  })(req, res);
 });
 
 export const config = {
